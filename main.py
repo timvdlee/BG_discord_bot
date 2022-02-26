@@ -1,8 +1,6 @@
 import discord
 import os
 
-print(os.environ.get("BOT_TOKEN"))
-
 class Archivator(discord.Client):
     async def on_ready(self):
         print('Logged on as {0}!'.format(self.user))
