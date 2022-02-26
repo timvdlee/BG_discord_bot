@@ -1,6 +1,7 @@
 import discord
-from os import environ
+import os
 
+print(os.environ.get("BOT_TOKEN"))
 
 class Archivator(discord.Client):
     async def on_ready(self):
@@ -11,7 +12,7 @@ class Archivator(discord.Client):
 
 
 client = Archivator()
-client.run(environ.get("BOT_TOKEN"))
+client.run(os.environ.get("BOT_TOKEN"))
 
 
 def main():
