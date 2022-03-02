@@ -77,11 +77,12 @@ def fetch_immune_channels():
 # ___END_!IMMUNE
 
 # __START_ auto archive
-async def archive_channels():
+async def get_candidates(message):
     chn_list = await get_channel_msg_time()
     candidates = get_achive_candidates(chn_list)
+    archivestring = "Unarchived channels which have atleast 7 days of inactivity\nWhich are candidates for archivation:\n"
     for channel in candidates:
-        print(f"Candidate for archive {channel[1].name} with last message being {channel[0]} days ago")
+        archivestring + f"<#{channel[1].id}> with the last message being {channel[0]} days ago."
         # await change_category(channel[1],ARCHIVED)
 
 
@@ -201,7 +202,7 @@ async def on_ready():
     print(f'We have logged in as {client.user}')
     await client.change_presence(
         activity=discord.Activity(type=discord.ActivityType.watching, name="for inactive channels!"))
-    # await archive_channels()
+    await get_candidates()
 
 
 @client.event
@@ -212,6 +213,7 @@ async def on_message(message):
         if msgc.startswith("!status"): await change_bot_status(message)
         if msgc.startswith("!send-message-in"): await send_msg_in_channels(message)
         if msgc == '!archive': await archive_channel(message)
+        if msgc == '!candidates': await get_candidates(message)
 
 
 @client.event
