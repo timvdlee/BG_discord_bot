@@ -46,15 +46,17 @@ def get_channels_in_category(chr_dict, category_ids, inverted=False, channel_typ
     :param channel_type: The type of channel to return. Default TextChannel
     :return: List of channels
     """
-    if category_ids is not list:
+    if type(category_ids) is not list:
         category_ids = [category_ids]
     return_channels = []
     channels = chr_dict[channel_type]
     for channel in channels:
+        print(channel.name,channel.category_id, category_ids, channel.category_id in category_ids)
         if channel.category_id in category_ids:
             return_channels.append(channel)
     if inverted:
-        return list(set(channels) - set(return_channels))
+        result = list(set(channels) - set(return_channels))
+        return result
     else:
         return return_channels
 
@@ -78,12 +80,13 @@ def fetch_immune_channels():
 
 # __START_ auto archive
 async def get_candidates(message):
+    await message.channel.trigger_typing()
     chn_list = await get_channel_msg_time()
     candidates = get_achive_candidates(chn_list)
-    archivestring = "Unarchived channels which have atleast 7 days of inactivity\nWhich are candidates for archivation:\n"
+    archivestring = "Unarchived channels which have atleast 7 days of inactivity\nWhich are candidates for archivation:\n\n"
     for channel in candidates:
-        archivestring + f"<#{channel[1].id}> with the last message being {channel[0]} days ago."
-        # await change_category(channel[1],ARCHIVED)
+        archivestring += f"<#{channel[1].id}> with the last message being {channel[0]} days ago.\n"
+    await message.channel.send(archivestring)
 
 
 async def get_channel_msg_time():
@@ -202,7 +205,6 @@ async def on_ready():
     print(f'We have logged in as {client.user}')
     await client.change_presence(
         activity=discord.Activity(type=discord.ActivityType.watching, name="for inactive channels!"))
-    await get_candidates()
 
 
 @client.event
