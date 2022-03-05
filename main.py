@@ -1,8 +1,10 @@
 import discord
 import os
 import datetime
+import random
 
 from discord.ext.commands import has_permissions
+from operator import itemgetter
 
 BAD_ID = 754374401830551552
 DOG_ID = 424883648349601793
@@ -13,7 +15,10 @@ MY_DOG_TESTCAT = 424883648349601796
 
 BOT_CMDS = 785626495837405205
 
-intents = discord.Intents(messages=True, guilds=True, message_content=True)
+no_motd = 949800887797317692
+motd_role = 949801868303958107
+
+intents = discord.Intents(messages=True, guilds=True, message_content=True, members=True)
 
 client = discord.Client(intents=intents)
 
@@ -51,7 +56,7 @@ def get_channels_in_category(chr_dict, category_ids, inverted=False, channel_typ
     return_channels = []
     channels = chr_dict[channel_type]
     for channel in channels:
-        print(channel.name,channel.category_id, category_ids, channel.category_id in category_ids)
+        #print(channel.name, channel.category_id, category_ids, channel.category_id in category_ids)
         if channel.category_id in category_ids:
             return_channels.append(channel)
     if inverted:
@@ -80,12 +85,21 @@ def fetch_immune_channels():
 
 # __START_ auto archive
 async def get_candidates(message):
+    immune = fetch_immune_channels()
     await message.channel.trigger_typing()
     chn_list = await get_channel_msg_time()
-    candidates = get_achive_candidates(chn_list)
-    archivestring = "Unarchived channels which have atleast 7 days of inactivity\nWhich are candidates for archivation:\n\n"
+    candidates, safe = get_achive_candidates(chn_list)
+    archivestring = "Unarchived channels which have atleast 7 days of inactivity\n\n"
     for channel in candidates:
         archivestring += f"<#{channel[1].id}> with the last message being {channel[0]} days ago.\n"
+    safe.sort(key=itemgetter(0), reverse=True)
+    archivestring += "\nThese channels are no candidates because they are immune or they dont have 7 days of inactivity!\n"
+    for safe_chn in safe:
+        archivestring += f"Last message: {safe_chn[0]} days ago for <#{safe_chn[1].id}>"
+        if str(safe_chn[1].id) in immune:
+            archivestring += ":shield:\n"
+        else:
+            archivestring += "\n"
     await message.channel.send(archivestring)
 
 
@@ -94,7 +108,7 @@ async def get_channel_msg_time():
     active_channels_list = []
     unarchived_channels = get_channels_in_category(channel_dicts, [ARCHIVED, EXIBITION], inverted=True)
     for textchannel in unarchived_channels:
-        if str(textchannel.id) not in fetch_immune_channels():
+        if str(textchannel.id):  # not in fetch_immune_channels():
             active_channel = textchannel
             channel_age = await get_channel_age(textchannel)
             active_channels_list.append([channel_age, active_channel])
@@ -102,11 +116,15 @@ async def get_channel_msg_time():
 
 
 def get_achive_candidates(channel_list):
+    immune = fetch_immune_channels()
     candidates = []
+    safe_from_archive = []
     for channel in channel_list:
-        if channel[0] >= 7:
+        if channel[0] >= 7 and str(channel[1].id) not in immune:
             candidates.append(channel)
-    return candidates
+        else:
+            safe_from_archive.append(channel)
+    return candidates, safe_from_archive
 
 
 async def get_channel_age(textchannel):
@@ -127,16 +145,21 @@ async def change_category(channel: discord.TextChannel, category_id, sync_perms=
     category = client.get_channel(category_id)
     await channel.edit(category=category, sync_permissions=sync_perms)
 
-#archive 1 channel only
+
+# archive 1 channel only
 @has_permissions(administrator=True)
 async def archive_channel(message: discord.Message):
     archive_msg = """This channel has been <#788840904412233778>!
 It can be brought back with 5 votes and permission from at least two admins. 
 You can request this in <#788054115955245056>
 """
-    await change_category(message.channel, ARCHIVED)
-    await message.channel.send(archive_msg)
-    await message.delete()
+    if str(message.channel.id) not in fetch_immune_channels():
+        await change_category(message.channel, ARCHIVED)
+        await message.channel.send(archive_msg)
+        await message.delete()
+    else:
+        await message.channel.send("This channel is immune. And cannot be archived automatically!")
+
 
 # __END_archive
 
@@ -199,6 +222,16 @@ Example: !send-message-in channel Hello!
             ```"""
         await message.channel.send(errormsg)
 
+# MOTH
+
+def get_motd():
+    server = client.get_guild(BAD_ID)
+    eligable = []
+    for member in server.members:
+        if member.bot is False and not member.get_role(no_motd):
+            eligable.append(member)
+    return random.choice(eligable)
+
 
 @client.event
 async def on_ready():
@@ -211,11 +244,15 @@ async def on_ready():
 async def on_message(message):
     if message.author != client.user:
         msgc: str = message.content
-        if msgc == '!immune': add_channel_immunity(message.channel, message.author.id)
+        if msgc == '!immune': await add_channel_immunity(message.channel, message.author.id)
         if msgc.startswith("!status"): await change_bot_status(message)
-        if msgc.startswith("!send-message-in"): await send_msg_in_channels(message)
-        if msgc == '!archive': await archive_channel(message)
+        if msgc.startswith("!send-message-in"): await send_msg_in_channels(message) if message.author.guild_permissions.administrator else await no_perms(message)
+        if msgc == '!archive': await archive_channel(message) if message.author.guild_permissions.administrator else await no_perms(message)
         if msgc == '!candidates': await get_candidates(message)
+
+
+async def no_perms(message):
+    await message.channel.send(f"Im sorry <@{message.author.id}> but you dont have the permissions to use this command!")
 
 
 @client.event
