@@ -89,18 +89,25 @@ async def get_candidates(message):
     await message.channel.trigger_typing()
     chn_list = await get_channel_msg_time()
     candidates, safe = get_achive_candidates(chn_list)
+    archive_string_list = []
     archivestring = "Unarchived channels which have atleast 7 days of inactivity\n\n"
     for channel in candidates:
         archivestring += f"<#{channel[1].id}> with the last message being {channel[0]} days ago.\n"
     safe.sort(key=itemgetter(0), reverse=True)
     archivestring += "\nThese channels are no candidates because they are immune or they dont have 7 days of inactivity!\n"
     for safe_chn in safe:
-        archivestring += f"Last message: {safe_chn[0]} days ago for <#{safe_chn[1].id}>"
-        if str(safe_chn[1].id) in immune:
-            archivestring += ":shield:\n"
+        if len(archivestring) + len(f"Last message: {safe_chn[0]} days ago for <#{safe_chn[1].id}>") < 1900:
+            archivestring += f"Last message: {safe_chn[0]} days ago for <#{safe_chn[1].id}>"
+            if str(safe_chn[1].id) in immune:
+                archivestring += ":shield:\n"
+            else:
+                archivestring += "\n"
         else:
-            archivestring += "\n"
-    await message.channel.send(archivestring)
+            archive_string_list.append(archivestring)
+            archivestring = ""
+    archive_string_list.append(archivestring)
+    for msg in archive_string_list:
+        await message.channel.send(msg)
 
 
 async def get_channel_msg_time():
