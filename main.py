@@ -254,9 +254,9 @@ async def on_message(message):
         msgc: str = message.content
         if msgc == '!immune': await add_channel_immunity(message.channel, message.author.id)
         if msgc.startswith("!status"): await change_bot_status(message)
-        if msgc.startswith("!send-message-in"): await send_msg_in_channels(message) if message.author.guild_permissions.administrator else await no_perms(message)
+        if msgc.startswith("!echo"): await send_msg_in_channels(message) if message.author.guild_permissions.administrator else await no_perms(message)
         if msgc == '!archive': await archive_channel(message) if message.author.guild_permissions.administrator else await no_perms(message)
-        if msgc == '!candidates': await get_candidates(message)
+        if msgc == '!candidates' and message.channel.id == 785626495837405205: await get_candidates(message)
 
 
 async def no_perms(message):
