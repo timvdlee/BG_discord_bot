@@ -10,6 +10,7 @@ BAD_ID = 754374401830551552
 DOG_ID = 424883648349601793
 
 ARCHIVED = 788839782901219338
+ARCHIVED_2 = 982710119538229278
 EXIBITION = 943101926155902977
 MY_DOG_TESTCAT = 424883648349601796
 
@@ -113,7 +114,7 @@ async def get_candidates(message):
 async def get_channel_msg_time():
     channel_dicts = get_channel_dict(BAD_ID)
     active_channels_list = []
-    unarchived_channels = get_channels_in_category(channel_dicts, [ARCHIVED, EXIBITION], inverted=True)
+    unarchived_channels = get_channels_in_category(channel_dicts, [ARCHIVED, ARCHIVED_2, EXIBITION], inverted=True)
     for textchannel in unarchived_channels:
         if str(textchannel.id):  # not in fetch_immune_channels():
             active_channel = textchannel
@@ -161,7 +162,7 @@ It can be brought back with 5 votes and permission from at least two admins.
 You can request this in <#788054115955245056>
 """
     if str(message.channel.id) not in fetch_immune_channels():
-        await change_category(message.channel, ARCHIVED)
+        await change_category(message.channel, ARCHIVED_2)
         await message.channel.send(archive_msg)
         await message.delete()
     else:
