@@ -8,16 +8,19 @@ from operator import itemgetter
 
 BAD_ID = 754374401830551552
 DOG_ID = 424883648349601793
+arch_logs = 985244981159678012
 
 ARCHIVED = 788839782901219338
 ARCHIVED_2 = 982710119538229278
 EXIBITION = 943101926155902977
-MY_DOG_TESTCAT = 424883648349601796
 
 BOT_CMDS = 785626495837405205
 
-no_motd = 949800887797317692
-motd_role = 949801868303958107
+server_notif = 782217034662019102
+gaming_talk = 822172638100193400
+motw_participant = 949800887797317692
+motw_role = 949801868303958107
+motw_channel = 985226350505898054
 
 intents = discord.Intents(messages=True, guilds=True, message_content=True, members=True)
 
@@ -234,24 +237,62 @@ Example: !send-message-in channel Hello!
 
 # MOTH
 
-def get_motd():
+def get_possible_motw():
     server = client.get_guild(BAD_ID)
     eligable = []
     for member in server.members:
-        if member.bot is False and not member.get_role(no_motd):
+        if member.get_role(motw_participant) and not member.get_role(motw_role):
             eligable.append(member)
     return random.choice(eligable)
+
+
+async def get_time_since_last_own_msg():
+    server_not: discord.TextChannel = client.get_guild(BAD_ID).get_channel(server_notif)
+    history = await server_not.history(limit=100).flatten()
+    last_own_msg = None
+    for msg in history:
+        if msg.author == client.user:
+            last_own_msg = msg
+            break
+    if last_own_msg:
+        created = last_own_msg.created_at
+        now = datetime.datetime.utcnow()
+        now, created = now.replace(tzinfo=None), created.replace(tzinfo=None)
+        elapsed = now - created
+    else:
+        return 100
+    return elapsed.days
+
+
+async def change_motw(force=False):
+    BG = client.get_guild(BAD_ID)
+    server_not: discord.TextChannel = BG.get_channel(server_notif)
+    new_motw = get_possible_motw()
+    day_of_week = datetime.datetime.today().weekday()
+    motw_role_obj = BG.get_role(motw_role)
+    if day_of_week == 0 and await get_time_since_last_own_msg() > 5 or force:  # Monday
+        for member in motw_role_obj.members:
+            await member.remove_roles(motw_role_obj)
+        await new_motw.add_roles(motw_role_obj)
+        MOTW_MESSAGE =f"""Another week has begun that means that <@{new_motw.id}> is our new <@&{motw_role}>!
+This week <#985226350505898054> is dedicated to <@{new_motw.id}>. Say something nice about them here!
+<@&{motw_participant}>
+"""
+        await server_not.send(MOTW_MESSAGE)
 
 
 @client.event
 async def on_ready():
     print(f'We have logged in as {client.user}')
+    LOG = client.get_guild(DOG_ID).get_channel(arch_logs)
+    await LOG.send(f'We have logged in as {client.user}')
+    await change_motw()
     await client.change_presence(
         activity=discord.Activity(type=discord.ActivityType.watching, name="for inactive channels!"))
 
 
 async def gif_only(message: discord.Message):
-    if str(datetime.date.today())[5:] == '06-15' and message.channel.id != 822172638100193400:
+    if str(datetime.date.today())[5:] == '06-15' and message.channel.id != gaming_talk:
         valid = False
         if len(message.attachments) > 0:
             if "gif" in message.attachments[0].url:
@@ -274,7 +315,9 @@ async def on_message(message):
         if msgc == '!archive': await archive_channel(
             message) if message.author.guild_permissions.administrator else await no_perms(message)
         if msgc == '!candidates' and message.channel.id == 785626495837405205: await get_candidates(message)
+        if msgc == '!force_motw': await change_motw(True) if message.author.guild_permissions.administrator else await no_perms(message)
         await gif_only(message)
+
 
 
 async def no_perms(message):
@@ -284,7 +327,18 @@ async def no_perms(message):
 
 @client.event
 async def on_message_edit(msg_b, msg_a):
-    print(f"Message by {msg_b.author} edited from {msg_b.content} to {msg_a.content}")
+    LOG = client.get_guild(DOG_ID).get_channel(arch_logs)
+    notice = f"Message by <@{msg_b.author.id}> edited from {msg_b.content} to {msg_a.content}"
+    await LOG.send(notice)
+    print(notice)
+
+
+@client.event
+async def on_message_delete(msg):
+    LOG = client.get_guild(DOG_ID).get_channel(arch_logs)
+    notice = f"Message by <@{msg.author.id}> deleted content: {msg.content}"
+    await LOG.send(notice)
+    print(notice)
 
 
 client.run(os.environ.get("BOT_TOKEN"))
