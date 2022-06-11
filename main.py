@@ -274,7 +274,7 @@ async def change_motw(force=False):
         for member in motw_role_obj.members:
             await member.remove_roles(motw_role_obj)
         await new_motw.add_roles(motw_role_obj)
-        MOTW_MESSAGE =f"""Another week has begun that means that <@{new_motw.id}> is our new <@&{motw_role}>!
+        MOTW_MESSAGE = f"""Another week has begun that means that <@{new_motw.id}> is our new <@&{motw_role}>!
 This week <#985226350505898054> is dedicated to <@{new_motw.id}>. Say something nice about them here!
 <@&{motw_participant}>
 """
@@ -315,9 +315,9 @@ async def on_message(message):
         if msgc == '!archive': await archive_channel(
             message) if message.author.guild_permissions.administrator else await no_perms(message)
         if msgc == '!candidates' and message.channel.id == 785626495837405205: await get_candidates(message)
-        if msgc == '!force_motw': await change_motw(True) if message.author.guild_permissions.administrator else await no_perms(message)
+        if msgc == '!force_motw': await change_motw(
+            True) if message.author.guild_permissions.administrator else await no_perms(message)
         await gif_only(message)
-
 
 
 async def no_perms(message):
@@ -328,7 +328,7 @@ async def no_perms(message):
 @client.event
 async def on_message_edit(msg_b, msg_a):
     LOG = client.get_guild(DOG_ID).get_channel(arch_logs)
-    notice = f"Message by <@{msg_b.author.id}> edited from {msg_b.content} to {msg_a.content}"
+    notice = f"Message by {msg_b.author} edited from {msg_b.content} to {msg_a.content}"
     await LOG.send(notice)
     print(notice)
 
@@ -336,7 +336,7 @@ async def on_message_edit(msg_b, msg_a):
 @client.event
 async def on_message_delete(msg):
     LOG = client.get_guild(DOG_ID).get_channel(arch_logs)
-    notice = f"Message by <@{msg.author.id}> deleted content: {msg.content}"
+    notice = f"Message by {msg.author} deleted content: {msg.content}"
     await LOG.send(notice)
     print(notice)
 
