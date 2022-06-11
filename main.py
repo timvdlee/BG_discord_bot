@@ -57,7 +57,7 @@ def get_channels_in_category(chr_dict, category_ids, inverted=False, channel_typ
     return_channels = []
     channels = chr_dict[channel_type]
     for channel in channels:
-        #print(channel.name, channel.category_id, category_ids, channel.category_id in category_ids)
+        # print(channel.name, channel.category_id, category_ids, channel.category_id in category_ids)
         if channel.category_id in category_ids:
             return_channels.append(channel)
     if inverted:
@@ -219,6 +219,7 @@ async def send_msg_in_channels(message: discord.Message):
             channels = [channel]
         for channel in channels:
             await channel.send(msg_to_send)
+            await message.delete()
     except Exception as e:
         print(e)
         errormsg = """```
@@ -229,6 +230,7 @@ Or a category ID!
 Example: !send-message-in channel Hello!
             ```"""
         await message.channel.send(errormsg)
+
 
 # MOTH
 
@@ -248,19 +250,36 @@ async def on_ready():
         activity=discord.Activity(type=discord.ActivityType.watching, name="for inactive channels!"))
 
 
+async def gif_only(message: discord.Message):
+    if str(datetime.date.today())[5:] == '06-15' and message.channel.id != 822172638100193400:
+        valid = False
+        if len(message.attachments) > 0:
+            if "gif" in message.attachments[0].url:
+                valid = True
+        if len(message.embeds) > 0:
+            if "gif" in message.embeds[0].url:
+                valid = True
+        if not valid:
+            await message.channel.send("https://tenor.com/view/today-gif-only-gif-gif-only-today-gif-25305650")
+
+
 @client.event
 async def on_message(message):
     if message.author != client.user:
         msgc: str = message.content
         if msgc == '!immune': await add_channel_immunity(message.channel, message.author.id)
         if msgc.startswith("!status"): await change_bot_status(message)
-        if msgc.startswith("!echo"): await send_msg_in_channels(message) if message.author.guild_permissions.administrator else await no_perms(message)
-        if msgc == '!archive': await archive_channel(message) if message.author.guild_permissions.administrator else await no_perms(message)
+        if msgc.startswith("!echo"): await send_msg_in_channels(
+            message) if message.author.guild_permissions.administrator else await no_perms(message)
+        if msgc == '!archive': await archive_channel(
+            message) if message.author.guild_permissions.administrator else await no_perms(message)
         if msgc == '!candidates' and message.channel.id == 785626495837405205: await get_candidates(message)
+        await gif_only(message)
 
 
 async def no_perms(message):
-    await message.channel.send(f"Im sorry <@{message.author.id}> but you dont have the permissions to use this command!")
+    await message.channel.send(
+        f"Im sorry <@{message.author.id}> but you dont have the permissions to use this command!")
 
 
 @client.event
