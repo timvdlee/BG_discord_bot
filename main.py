@@ -300,6 +300,8 @@ async def gif_only(message: discord.Message):
         if len(message.embeds) > 0:
             if "gif" in message.embeds[0].url:
                 valid = True
+        if 'https://' in message.content and 'gif' in message.content:
+            valid = True
         if not valid:
             await message.channel.send("https://tenor.com/view/today-gif-only-gif-gif-only-today-gif-25305650")
 
