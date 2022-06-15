@@ -292,7 +292,9 @@ async def on_ready():
 
 
 async def gif_only(message: discord.Message):
+
     if str(datetime.date.today())[5:] == '06-15' and message.channel.id != gaming_talk:
+        datetime.datetime.astime
         valid = False
         if len(message.attachments) > 0:
             if "gif" in message.attachments[0].url:
@@ -319,7 +321,7 @@ async def on_message(message):
         if msgc == '!candidates' and message.channel.id == 785626495837405205: await get_candidates(message)
         if msgc == '!force_motw': await change_motw(
             True) if message.author.guild_permissions.administrator else await no_perms(message)
-        await gif_only(message)
+        #await gif_only(message)
 
 
 async def no_perms(message):
