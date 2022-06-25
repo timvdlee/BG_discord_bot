@@ -8,7 +8,10 @@ from operator import itemgetter
 
 BAD_ID = 754374401830551552
 DOG_ID = 424883648349601793
-arch_logs = 985244981159678012
+arch_start = 990225116824743947
+arch_edit = 985244981159678012
+arch_del = 990225145811595344
+
 
 ARCHIVED = 788839782901219338
 ARCHIVED_2 = 982710119538229278
@@ -265,12 +268,12 @@ async def get_time_since_last_own_msg():
 
 
 async def change_motw(force=False):
-    BG = client.get_guild(BAD_ID)
-    server_not: discord.TextChannel = BG.get_channel(server_notif)
-    new_motw = get_possible_motw()
     day_of_week = datetime.datetime.today().weekday()
-    motw_role_obj = BG.get_role(motw_role)
     if day_of_week == 0 and await get_time_since_last_own_msg() > 5 or force:  # Monday
+        BG = client.get_guild(BAD_ID)
+        server_not: discord.TextChannel = BG.get_channel(server_notif)
+        new_motw: discord.user = get_possible_motw()
+        motw_role_obj = BG.get_role(motw_role)
         for member in motw_role_obj.members:
             await member.remove_roles(motw_role_obj)
         await new_motw.add_roles(motw_role_obj)
@@ -279,13 +282,15 @@ This week <#985226350505898054> is dedicated to <@{new_motw.id}>. Say something 
 <@&{motw_participant}>
 """
         await server_not.send(MOTW_MESSAGE)
+        await client.change_presence(
+            activity=discord.Activity(type=discord.ActivityType.playing, name=f"{new_motw.display_name} is our new member of the week!"))
 
 
 @client.event
 async def on_ready():
     print(f'We have logged in as {client.user}')
-    LOG = client.get_guild(DOG_ID).get_channel(arch_logs)
-    await LOG.send(f'We have logged in as {client.user}')
+    LOG = client.get_guild(DOG_ID).get_channel(arch_start)
+    await LOG.send(f'{client.user} started at {datetime.datetime.now().strftime("%H:%M:%S")}')
     await change_motw()
     await client.change_presence(
         activity=discord.Activity(type=discord.ActivityType.watching, name="for inactive channels!"))
@@ -331,16 +336,16 @@ async def no_perms(message):
 
 @client.event
 async def on_message_edit(msg_b, msg_a):
-    LOG = client.get_guild(DOG_ID).get_channel(arch_logs)
-    notice = f"Message by {msg_b.author} edited from {msg_b.content} to {msg_a.content}"
+    LOG = client.get_guild(DOG_ID).get_channel(arch_edit)
+    notice = f"{msg_b.author} edited from {msg_a.channel}: {msg_b.content} to: {msg_a.content}"
     await LOG.send(notice)
     print(notice)
 
 
 @client.event
 async def on_message_delete(msg):
-    LOG = client.get_guild(DOG_ID).get_channel(arch_logs)
-    notice = f"Message by {msg.author} deleted content: {msg.content}"
+    LOG = client.get_guild(DOG_ID).get_channel(arch_del)
+    notice = f"{msg.author} deleted: {msg.content} | from {msg.channel}"
     await LOG.send(notice)
     print(notice)
 
