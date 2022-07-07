@@ -1,8 +1,9 @@
 import discord
+import asyncio
 import os
 import datetime
 import random
-
+from discord.ext import commands,tasks
 from discord.ext.commands import has_permissions
 from operator import itemgetter
 
@@ -25,7 +26,7 @@ motw_participant = 949800887797317692
 motw_role = 949801868303958107
 motw_channel = 985226350505898054
 
-intents = discord.Intents(messages=True, guilds=True, message_content=True, members=True)
+intents = discord.Intents(messages=True, guilds=True, members=True)
 
 client = discord.Client(intents=intents)
 
@@ -267,23 +268,26 @@ async def get_time_since_last_own_msg():
     return elapsed.days
 
 
+@tasks.loop(minutes=15)
 async def change_motw(force=False):
-    day_of_week = datetime.datetime.today().weekday()
+    today = datetime.datetime.today()
+    day_of_week = today.weekday()
     if day_of_week == 0 and await get_time_since_last_own_msg() > 5 or force:  # Monday
-        BG = client.get_guild(BAD_ID)
-        server_not: discord.TextChannel = BG.get_channel(server_notif)
-        new_motw: discord.user = get_possible_motw()
-        motw_role_obj = BG.get_role(motw_role)
-        for member in motw_role_obj.members:
-            await member.remove_roles(motw_role_obj)
-        await new_motw.add_roles(motw_role_obj)
-        MOTW_MESSAGE = f"""Another week has begun that means that <@{new_motw.id}> is our new <@&{motw_role}>!
-This week <#985226350505898054> is dedicated to <@{new_motw.id}>. Say something nice about them here!
-<@&{motw_participant}>
-"""
-        await server_not.send(MOTW_MESSAGE)
-        await client.change_presence(
-            activity=discord.Activity(type=discord.ActivityType.playing, name=f"{new_motw.display_name} is our new member of the week!"))
+        if today.hour == 8 or force:
+            BG = client.get_guild(BAD_ID)
+            server_not: discord.TextChannel = BG.get_channel(server_notif)
+            new_motw: discord.user = get_possible_motw()
+            motw_role_obj = BG.get_role(motw_role)
+            for member in motw_role_obj.members:
+                await member.remove_roles(motw_role_obj)
+            await new_motw.add_roles(motw_role_obj)
+            MOTW_MESSAGE = f"""Another week has begun that means that <@{new_motw.id}> is our new <@&{motw_role}>!
+    This week <#985226350505898054> is dedicated to <@{new_motw.id}>. Say something nice about them here!
+    <@&{motw_participant}>
+    """
+            await server_not.send(MOTW_MESSAGE)
+            await client.change_presence(
+                activity=discord.Activity(type=discord.ActivityType.playing, name=f"{new_motw.display_name} is our new member of the week!"))
 
 
 @client.event
@@ -291,15 +295,13 @@ async def on_ready():
     print(f'We have logged in as {client.user}')
     LOG = client.get_guild(DOG_ID).get_channel(arch_start)
     await LOG.send(f'{client.user} started at {datetime.datetime.now().strftime("%H:%M:%S")}')
-    await change_motw()
     await client.change_presence(
         activity=discord.Activity(type=discord.ActivityType.watching, name="for inactive channels!"))
+    change_motw.start()
 
 
 async def gif_only(message: discord.Message):
-
     if str(datetime.date.today())[5:] == '06-15' and message.channel.id != gaming_talk:
-        datetime.datetime.astime
         valid = False
         if len(message.attachments) > 0:
             if "gif" in message.attachments[0].url:
