@@ -25,7 +25,8 @@ motw_participant = 949800887797317692
 motw_role = 949801868303958107
 motw_channel = 985226350505898054
 
-intents = discord.Intents(messages=True, guilds=True, message_content=True, members=True)
+intents = discord.Intents(messages=True, guilds=True, members=True)
+print("IF NOT RESPONDING ADD message_content=True to intents (only after august 1st)")
 
 client = discord.Client(intents=intents)
 
@@ -269,7 +270,7 @@ async def get_time_since_last_own_msg():
 
 async def change_motw(force=False):
     day_of_week = datetime.datetime.today().weekday()
-    if day_of_week == 0 and await get_time_since_last_own_msg() > 5 or force:  # Monday
+    if day_of_week == 0 and await get_time_since_last_own_msg() > 3 or force:  # Monday
         BG = client.get_guild(BAD_ID)
         server_not: discord.TextChannel = BG.get_channel(server_notif)
         new_motw: discord.user = get_possible_motw()
@@ -291,9 +292,9 @@ async def on_ready():
     print(f'We have logged in as {client.user}')
     LOG = client.get_guild(DOG_ID).get_channel(arch_start)
     await LOG.send(f'{client.user} started at {datetime.datetime.now().strftime("%H:%M:%S")}')
-    await change_motw()
     await client.change_presence(
         activity=discord.Activity(type=discord.ActivityType.watching, name="for inactive channels!"))
+    #await change_motw()
 
 
 async def gif_only(message: discord.Message):
@@ -326,7 +327,8 @@ async def on_message(message):
         if msgc == '!candidates' and message.channel.id == 785626495837405205: await get_candidates(message)
         if msgc == '!force_motw': await change_motw(
             True) if message.author.guild_permissions.administrator else await no_perms(message)
-        #await gif_only(message)
+        if message.author.id == 1000529572644798494 and message.author.bot is True:
+            await change_motw()
 
 
 async def no_perms(message):
