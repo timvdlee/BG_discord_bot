@@ -25,8 +25,7 @@ motw_participant = 949800887797317692
 motw_role = 949801868303958107
 motw_channel = 985226350505898054
 
-intents = discord.Intents(messages=True, guilds=True, members=True)
-print("IF NOT RESPONDING ADD message_content=True to intents (only after august 1st)")
+intents = discord.Intents(messages=True, guilds=True, members=True,message_content=True)
 
 client = discord.Client(intents=intents)
 
