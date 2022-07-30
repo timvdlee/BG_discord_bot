@@ -313,6 +313,19 @@ async def gif_only(message: discord.Message):
             await message.channel.send("https://tenor.com/view/today-gif-only-gif-gif-only-today-gif-25305650")
 
 
+async def send_dm(message: discord.Message):
+    try:
+        content = message.content
+        content = content.split(" ")
+        del content[0]
+        userId = content.pop(0).strip().lstrip("<@").rstrip(">")
+        msg = " ".join(content)
+        user = await client.fetch_user(userId)
+        await user.send(msg)
+        await message.delete()
+    except:
+        message.channel.send("Failed to send dm")
+
 @client.event
 async def on_message(message):
     if message.author != client.user:
@@ -328,6 +341,7 @@ async def on_message(message):
             True) if message.author.guild_permissions.administrator else await no_perms(message)
         if message.author.id == 1000529572644798494 and message.author.bot is True:
             await change_motw()
+        if msgc.startswith('!dm'): await send_dm(message) if message.author.guild_permissions.administrator else await no_perms(message)
 
 
 async def no_perms(message):
