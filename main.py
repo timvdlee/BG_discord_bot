@@ -86,14 +86,28 @@ async def add_channel_immunity(channel, a_id):
 async def revoke_channel_immunity(channel, a_id):
     if a_id == 278558820752424960:
         with open("immunity.txt", "r", encoding="utf-8") as file:
-            file.write(f"{channel.id}:{channel.name}\n")
-        await channel.send(f"Removed <#{channel.id}> to the archive immunity list")
+            removed_channel = False
+            keep_list = []
+            for immune_channel in file.readlines():
+                immune_channel_id = int(immune_channel.split(":")[0])
+                if immune_channel_id == channel.id:
+                    removed_channel = True
+                else:
+                    keep_list.append(immune_channel)
+        with open("immunity.txt", "w", encoding="utf-8") as file:
+            file.write("".join(keep_list))
+        if removed_channel:
+            await channel.send(f"Removed <#{channel.id}> from the archive immunity list")
+        else:
+            await channel.send(f"<#{channel.id}> was not immune so nothing happened!")
     else:
         await channel.send("Sadly you cannot revoke immunity. Thats not how it works :)")
 
 
-def fetch_immune_channels():
+def fetch_immune_channels(full=False):
     with open("immunity.txt", "r", encoding="utf-8") as file:
+        if full:
+            return file.readlines()
         return [line.split(":")[0] for line in file.readlines()]
 
 
@@ -332,8 +346,8 @@ async def send_dm(message: discord.Message):
         user = await client.fetch_user(userId)
         await user.send(msg)
         await message.delete()
-    except:
-        message.channel.send("Failed to send dm")
+    except Exception as e:
+        message.channel.send(f"Failed to send dm\n {str(e)}")
 
 
 async def restart_bot(message: discord.Message):
@@ -361,6 +375,7 @@ async def on_message(message):
             await change_motw()
         if msgc.startswith('!dm'): await send_dm(message) if message.author.guild_permissions.administrator else await no_perms(message)
         if msgc == "!restart": await restart_bot(message)
+        if msgc == "!print_immune": await message.channel.send(fetch_immune_channels(full=True))
 
 
 async def no_perms(message):
