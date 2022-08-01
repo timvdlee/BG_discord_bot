@@ -83,6 +83,15 @@ async def add_channel_immunity(channel, a_id):
         await channel.send("Sadly you can't make channels immune. Thats not how it works :)")
 
 
+async def revoke_channel_immunity(channel, a_id):
+    if a_id == 278558820752424960:
+        with open("immunity.txt", "r", encoding="utf-8") as file:
+            file.write(f"{channel.id}:{channel.name}\n")
+        await channel.send(f"Removed <#{channel.id}> to the archive immunity list")
+    else:
+        await channel.send("Sadly you cannot revoke immunity. Thats not how it works :)")
+
+
 def fetch_immune_channels():
     with open("immunity.txt", "r", encoding="utf-8") as file:
         return [line.split(":")[0] for line in file.readlines()]
@@ -326,11 +335,20 @@ async def send_dm(message: discord.Message):
     except:
         message.channel.send("Failed to send dm")
 
+
+async def restart_bot(message: discord.Message):
+    if message.author.id == 278558820752424960:
+        await message.channel.send(f"Restarting <@{client.user.id}>")
+        exit()
+    else:
+        await message.channel.send("Only the bot author can restart the bot!")
+
 @client.event
 async def on_message(message):
     if message.author != client.user:
         msgc: str = message.content
         if msgc == '!immune': await add_channel_immunity(message.channel, message.author.id)
+        if msgc == '!revoke_immunity': await revoke_channel_immunity(message.channel,message.author.id)
         if msgc.startswith("!status"): await change_bot_status(message)
         if msgc.startswith("!echo"): await send_msg_in_channels(
             message) if message.author.guild_permissions.administrator else await no_perms(message)
@@ -342,6 +360,7 @@ async def on_message(message):
         if message.author.id == 1000529572644798494 and message.author.bot is True:
             await change_motw()
         if msgc.startswith('!dm'): await send_dm(message) if message.author.guild_permissions.administrator else await no_perms(message)
+        if msgc == "!restart": await restart_bot(message)
 
 
 async def no_perms(message):
