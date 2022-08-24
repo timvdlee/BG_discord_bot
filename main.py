@@ -12,7 +12,6 @@ arch_start = 990225116824743947
 arch_edit = 985244981159678012
 arch_del = 990225145811595344
 
-
 ARCHIVED = 788839782901219338
 ARCHIVED_2 = 982710119538229278
 EXIBITION = 943101926155902977
@@ -25,7 +24,7 @@ motw_participant = 949800887797317692
 motw_role = 949801868303958107
 motw_channel = 985226350505898054
 
-intents = discord.Intents(messages=True, guilds=True, members=True,message_content=True)
+intents = discord.Intents(messages=True, guilds=True, members=True, message_content=True)
 
 client = discord.Client(intents=intents)
 
@@ -306,7 +305,8 @@ This week <#985226350505898054> is dedicated to <@{new_motw.id}>. Say something 
 """
         await server_not.send(MOTW_MESSAGE)
         await client.change_presence(
-            activity=discord.Activity(type=discord.ActivityType.playing, name=f"{new_motw.display_name} is our new member of the week!"))
+            activity=discord.Activity(type=discord.ActivityType.playing,
+                                      name=f"{new_motw.display_name} is our new member of the week!"))
 
 
 @client.event
@@ -316,11 +316,10 @@ async def on_ready():
     await LOG.send(f'{client.user} started at {datetime.datetime.now().strftime("%H:%M:%S")}')
     await client.change_presence(
         activity=discord.Activity(type=discord.ActivityType.watching, name="for inactive channels!"))
-    #await change_motw()
+    # await change_motw()
 
 
 async def gif_only(message: discord.Message):
-
     if str(datetime.date.today())[5:] == '06-15' and message.channel.id != gaming_talk:
         datetime.datetime.astime
         valid = False
@@ -357,12 +356,62 @@ async def restart_bot(message: discord.Message):
     else:
         await message.channel.send("Only the bot author can restart the bot!")
 
+
+def td_format(seconds):
+    seconds = int(seconds)
+    periods = [
+        ('year', 60 * 60 * 24 * 365),
+        ('month', 60 * 60 * 24 * 30),
+        ('day', 60 * 60 * 24),
+        ('hour', 60 * 60),
+        ('minute', 60),
+        ('second', 1)
+    ]
+
+    strings = []
+    for period_name, period_seconds in periods:
+        if seconds > period_seconds:
+            period_value, seconds = divmod(seconds, period_seconds)
+            has_s = 's' if period_value > 1 else ''
+            strings.append("%s %s%s" % (period_value, period_name, has_s))
+
+    return ", ".join(strings)
+
+
+def calculate_age(created):
+    now = datetime.datetime.utcnow()
+    now, created = now.replace(tzinfo=None), created.replace(tzinfo=None)
+    elapsed = now - created
+    total_sec = elapsed.total_seconds()
+    duration_string = td_format(total_sec)
+    creation_date_string = created.strftime("%d %B %Y at %H:%M:%S")
+    return creation_date_string, duration_string
+
+
+async def server_age(message: discord.Message):
+    BAD: discord.guild = client.get_guild(BAD_ID)
+    created = BAD.created_at
+    cds,ds = calculate_age(created)
+    to_send = f"""This server has been created on {cds}.
+This means that the server has an age of {ds}"""
+    await message.channel.send(to_send)
+
+async def account_age(message: discord.Message):
+    usr_id = message.content.split(" ")[1].lstrip("<@").rstrip(">")
+    usr: discord.User = await client.fetch_user(usr_id)
+    cds, ds = calculate_age(usr.created_at)
+    to_send = f"""The account of <@{usr_id}> has been created on {cds}.
+That gives it an age of {ds}"""
+    await message.channel.send(to_send)
+
+
+
 @client.event
 async def on_message(message):
     if message.author != client.user:
         msgc: str = message.content
         if msgc == '!immune': await add_channel_immunity(message.channel, message.author.id)
-        if msgc == '!revoke_immunity': await revoke_channel_immunity(message.channel,message.author.id)
+        if msgc == '!revoke_immunity': await revoke_channel_immunity(message.channel, message.author.id)
         if msgc.startswith("!status"): await change_bot_status(message)
         if msgc.startswith("!echo"): await send_msg_in_channels(
             message) if message.author.guild_permissions.administrator else await no_perms(message)
@@ -373,9 +422,12 @@ async def on_message(message):
             True) if message.author.guild_permissions.administrator else await no_perms(message)
         if message.author.id == 1000529572644798494 and message.author.bot is True:
             await change_motw()
-        if msgc.startswith('!dm'): await send_dm(message) if message.author.guild_permissions.administrator else await no_perms(message)
+        if msgc.startswith('!dm'): await send_dm(
+            message) if message.author.guild_permissions.administrator else await no_perms(message)
         if msgc == "!restart": await restart_bot(message)
         if msgc == "!print_immune": await message.channel.send(fetch_immune_channels(full=True))
+        if msgc == "!server_age": await server_age(message)
+        if msgc.startswith("!account_age"): await account_age(message)
 
 
 async def no_perms(message):
