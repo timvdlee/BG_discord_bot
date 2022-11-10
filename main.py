@@ -312,6 +312,7 @@ This week <#985226350505898054> is dedicated to <@{new_motw.id}>. Say something 
 @client.event
 async def on_ready():
     print(f'We have logged in as {client.user}')
+    print("Bot is ready!")
     LOG = client.get_guild(DOG_ID).get_channel(arch_start)
     await LOG.send(f'{client.user} started at {datetime.datetime.now().strftime("%H:%M:%S")}')
     await client.change_presence(
