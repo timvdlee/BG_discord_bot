@@ -331,13 +331,13 @@ async def dm(ctx: discord.ApplicationContext,
             await ctx.respond(f"Successfully send dm to <@{user.id}>! With message: {message}",ephemeral=True)
 
 
-@bot.slash_command(name="restart",description="Restarts the bot")
+@bot.slash_command(name="shutdown",description="Kills the python proccess which keeps the bot alive. Needs a manual restart")
 async def restart_bot(ctx: discord.ApplicationContext):
     if ctx.author.id == 278558820752424960:
-        await ctx.respond(f"Restarting <@{bot.user.id}>")
+        await ctx.respond(f"Shutting down <@{bot.user.id}>")
         exit()
     else:
-        await ctx.respond("Only the bot author can restart the bot!")
+        await ctx.respond("Only the bot author can shutdown the bot!")
 
 
 def td_format(seconds):
