@@ -451,7 +451,7 @@ async def get_edits(ctx: discord.ApplicationContext,
 
 @bot.slash_command(name="deletions",description="Gets the most recent deletions in the current channel")
 async def get_deletions(ctx: discord.ApplicationContext,
-                    del_num: Option(input_type=str,name="display_num",description="Number of edits to display (max 10)",required=True,choices=list(map(str,range(1,11)))),
+                    del_num: Option(input_type=str,name="display_num",description="Number of deletions to display (max 10)",required=True,choices=list(map(str,range(1,11)))),
                     silent: Option(input_type=bool,name="silent",description="Should the result be returned silently",default=False,choices=["True","False"])):
     if ctx.author.guild_permissions.administrator:
         if ctx.channel_id in DELETION_DICT:
