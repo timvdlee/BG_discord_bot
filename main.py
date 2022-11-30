@@ -3,7 +3,6 @@ import os
 import datetime
 import random
 
-from discord.ext.commands import has_permissions
 from operator import itemgetter
 from discord.commands import Option
 
@@ -28,6 +27,9 @@ motw_channel = 985226350505898054
 intents = discord.Intents(messages=True, guilds=True, members=True, message_content=True)
 
 bot = discord.Bot(intents=intents)
+
+EDIT_DICT = {}
+DELETION_DICT = {}
 
 
 #  START_GENERAL_USE
@@ -74,7 +76,7 @@ def get_channels_in_category(chr_dict, category_ids, inverted=False, channel_typ
 
 
 # ___START_!IMMUNE
-@bot.slash_command(name="immune",description="Adds a channel to the archive immunity list")
+@bot.slash_command(name="immune", description="Adds a channel to the archive immunity list")
 async def immune(ctx: discord.ApplicationContext):
     if ctx.author.id == 278558820752424960:
         with open("immunity.txt", "a", encoding="utf-8") as file:
@@ -117,7 +119,7 @@ def fetch_immune_channels(full=False):
 
 # __START_ auto archive
 
-@bot.slash_command(name="candidates",description="Prints all the non immune channels which could be archived")
+@bot.slash_command(name="candidates", description="Prints all the non immune channels which could be archived")
 async def candidates(ctx: discord.ApplicationContext):
     immune = fetch_immune_channels()
     await ctx.respond("Calculating channel activity!")
@@ -189,7 +191,7 @@ async def change_category(channel: discord.TextChannel, category_id, sync_perms=
 
 
 # archive 1 channel only
-@bot.slash_command(name="archive",description="Archives the current channel if its not immune")
+@bot.slash_command(name="archive", description="Archives the current channel if its not immune")
 async def archive(ctx: discord.ApplicationContext):
     archive_msg = """This channel has been <#788840904412233778>!
 It can be brought back with 5 votes and permission from at least two admins. 
@@ -199,18 +201,19 @@ You can request this in <#788054115955245056>
         if str(ctx.channel_id) not in fetch_immune_channels():
             await change_category(ctx.channel, ARCHIVED_2)
             await ctx.channel.send(archive_msg)
-            await ctx.respond("Archiving channel!",ephemeral=True)
+            await ctx.respond("Archiving channel!", ephemeral=True)
         else:
-            await ctx.respond("This channel is immune. And cannot be archived automatically!",ephemeral=True)
+            await ctx.respond("This channel is immune. And cannot be archived automatically!", ephemeral=True)
     else:
-        await ctx.respond("You cannot archive channels since you are not an admin!",ephemeral=True)
+        await ctx.respond("You cannot archive channels since you are not an admin!", ephemeral=True)
 
 
 # __END_archive
-@bot.slash_command(name="status",description="Change bot status")
+@bot.slash_command(name="status", description="Change bot status")
 async def status(ctx: discord.ApplicationContext,
-                 type: Option(str,name="type",choices=["Playing","Streaming","Watching","Listening","Competing","Disable"]),
-                 msg: Option(str,name="message",description="The message to display")):
+                 type: Option(str, name="type",
+                              choices=["Playing", "Streaming", "Watching", "Listening", "Competing", "Disable"]),
+                 msg: Option(str, name="message", description="The message to display")):
     activity = discord.ActivityType.unknown
     match type:
         case "Playing":
@@ -230,18 +233,18 @@ async def status(ctx: discord.ApplicationContext,
     await ctx.respond(f"Successfully changed status to `{activity.name} {msg}`")
 
 
-
-@bot.slash_command(name="echo",description="Send a message coming from the bot in a specific channel")
+@bot.slash_command(name="echo", description="Send a message coming from the bot in a specific channel")
 async def echo(ctx: discord.ApplicationContext,
-               channel: Option(input_type=discord.TextChannel,name="channel",description="The channel to send the message in"),
-               msg: Option(str,name="message",description="Message to send")):
+               channel: Option(input_type=discord.TextChannel, name="channel",
+                               description="The channel to send the message in"),
+               msg: Option(str, name="message", description="Message to send")):
     if ctx.author.guild_permissions.administrator:
-        await channel.send(msg)
-        await ctx.respond(f"Succesfully send {msg} in <#{channel.id}>",ephemeral=True)
+        channel_id = int(channel.lstrip("<#").rstrip(">"))
+        channel_obj: discord.TextChannel = bot.get_guild(ctx.guild_id).get_channel(channel_id)
+        await channel_obj.send(msg)
+        await ctx.respond(f"Succesfully send {msg} in <#{channel_id}>", ephemeral=True)
     else:
-        await ctx.respond(f"You do not have the permissions for this",ephemeral=True)
-
-
+        await ctx.respond(f"You do not have the permissions for this", ephemeral=True)
 
 
 # MOTH
@@ -303,35 +306,34 @@ async def on_ready():
     # await change_motw()
 
 
-async def gif_only(message: discord.Message):
-    if str(datetime.date.today())[5:] == '06-15' and message.channel.id != gaming_talk:
-        datetime.datetime.astime
-        valid = False
-        if len(message.attachments) > 0:
-            if "gif" in message.attachments[0].url:
-                valid = True
-        if len(message.embeds) > 0:
-            if "gif" in message.embeds[0].url:
-                valid = True
-        if 'https://' in message.content and 'gif' in message.content:
+def check_for_gif(message: discord.Message):
+    valid = False
+    if len(message.attachments) > 0:
+        if "gif" in message.attachments[0].url:
             valid = True
-        if not valid:
-            await message.channel.send("https://tenor.com/view/today-gif-only-gif-gif-only-today-gif-25305650")
+    if len(message.embeds) > 0:
+        if "gif" in message.embeds[0].url:
+            valid = True
+    if 'https://' in message.content and 'gif' in message.content:
+        valid = True
+    return valid
 
-@bot.slash_command(name="dm",description="Send a direct message through the bot")
+
+@bot.slash_command(name="dm", description="Send a direct message through the bot")
 async def dm(ctx: discord.ApplicationContext,
-    user: Option(discord.Member,input_type=discord.Member,name="member",required=True),
-    message: Option(str,"message",required=True)):
+             user: Option(discord.Member, input_type=discord.Member, name="member", required=True),
+             message: Option(str, "message", required=True)):
     if ctx.author.guild_permissions.administrator:
         try:
             await user.send(message)
         except Exception as e:
-            await ctx.respond(f"Failed to send dm\n {str(e)}",ephemeral=True)
+            await ctx.respond(f"Failed to send dm\n {str(e)}", ephemeral=True)
         else:
-            await ctx.respond(f"Successfully send dm to <@{user.id}>! With message: {message}",ephemeral=True)
+            await ctx.respond(f"Successfully send dm to <@{user.id}>! With message: {message}", ephemeral=True)
 
 
-@bot.slash_command(name="shutdown",description="Kills the python proccess which keeps the bot alive. Needs a manual restart")
+@bot.slash_command(name="shutdown",
+                   description="Kills the python proccess which keeps the bot alive. Needs a manual restart")
 async def restart_bot(ctx: discord.ApplicationContext):
     if ctx.author.id == 278558820752424960:
         await ctx.respond(f"Shutting down <@{bot.user.id}>")
@@ -370,38 +372,43 @@ def calculate_age(created):
     creation_date_string = created.strftime("%d %B %Y at %H:%M:%S")
     return creation_date_string, duration_string
 
-@bot.slash_command(name="server_age",description="Display the age of the server!")
+
+@bot.slash_command(name="server_age", description="Display the age of the server!")
 async def server_age(ctx: discord.ApplicationContext):
-    BAD: discord.guild = bot.get_guild(BAD_ID)
-    created = BAD.created_at
-    cds,ds = calculate_age(created)
+    server: discord.guild = bot.get_guild(ctx.guild_id)
+    created = server.created_at
+    cds, ds = calculate_age(created)
     to_send = f"""This server has been created on {cds}.
 This means that the server has an age of {ds}"""
     await ctx.respond(to_send)
 
-@bot.slash_command(name="account_age",description="Display the age of the supplied account!")
+
+@bot.slash_command(name="account_age", description="Display the age of the supplied account!")
 async def account_age(ctx: discord.ApplicationContext,
-    user: Option(discord.Member,input_type=discord.Member,name="member",required=True)):
+                      user: Option(discord.Member, input_type=discord.Member, name="member", required=True)):
     cds, ds = calculate_age(user.created_at)
     to_send = f"""The account of <@{user.id}> has been created on {cds}.
 That gives it an age of {ds}"""
     await ctx.respond(to_send)
 
 
+@bot.slash_command(name="ping", description="Gets the latency of the bot")
+async def ping(ctx: discord.ApplicationContext):
+    await ctx.respond(f"Pong! `{bot.latency:.4f}` seconds")
+
 
 @bot.event
 async def on_message(message):
     if message.author != bot.user:
         pass
-        #if msgc =  = '!candidates' and message.channel.id == 785626495837405205: await candidates(message)
+        # if msgc =  = '!candidates' and message.channel.id == 785626495837405205: await candidates(message)
 
-        #if msgc == '!force_motw': await change_motw(
+        # if msgc == '!force_motw': await change_motw(
         #    True) if message.author.guild_permissions.administrator else await no_perms(message)
-        #if message.author.id == 1000529572644798494 and message.author.bot is True:
+        # if message.author.id == 1000529572644798494 and message.author.bot is True:
         #    await change_motw()
-        #if msgc == "!restart": await restart_bot(message)
-        #if msgc == "!print_immune": await message.channel.send(fetch_immune_channels(full=True))
-
+        # if msgc == "!restart": await restart_bot(message)
+        # if msgc == "!print_immune": await message.channel.send(fetch_immune_channels(full=True))
 
 
 async def no_perms(message):
@@ -409,18 +416,78 @@ async def no_perms(message):
         f"Im sorry <@{message.author.id}> but you dont have the permissions to use this command!")
 
 
+def message_persistance(channel_id,msgstring ,deletion=False):
+    global EDIT_DICT, DELETION_DICT
+    active_dict = EDIT_DICT
+    if deletion:
+        active_dict = DELETION_DICT
+    if channel_id not in active_dict:
+        active_dict[channel_id] = [msgstring]
+    elif channel_id in active_dict:
+        if len(active_dict[channel_id]) > 10:
+            del active_dict[channel_id][0]
+        active_dict[channel_id].append(msgstring)
+
+
+@bot.slash_command(name="edits",description="Gets the most recent edits in the current channel")
+async def get_edits(ctx: discord.ApplicationContext,
+                    edit_num: Option(input_type=str,name="display_num",description="Number of edits to display (max 10)",required=True,choices=list(map(str,range(1,11)))),
+                    silent: Option(input_type=bool,name="silent",description="Should the result be returned silently",default=False,choices=["True","False"])):
+    if ctx.author.guild_permissions.administrator:
+        if ctx.channel_id in EDIT_DICT:
+            edit_list = EDIT_DICT[ctx.channel_id]
+            edit_num = int(edit_num)
+            if edit_num > len(edit_list):
+                edit_num = len(edit_list)
+            edit_msg = ""
+            for msg in edit_list[len(edit_list)-edit_num:]:
+                edit_msg += f"{msg}\n"
+            await ctx.respond(edit_msg, ephemeral=silent)
+        else:
+            await ctx.respond("There are no recent edits in this channel", ephemeral=silent)
+    else:
+        await ctx.respond("Only admins can use this command",ephemeral=silent)
+
+
+@bot.slash_command(name="deletions",description="Gets the most recent deletions in the current channel")
+async def get_deletions(ctx: discord.ApplicationContext,
+                    del_num: Option(input_type=str,name="display_num",description="Number of edits to display (max 10)",required=True,choices=list(map(str,range(1,11)))),
+                    silent: Option(input_type=bool,name="silent",description="Should the result be returned silently",default=False,choices=["True","False"])):
+    if ctx.author.guild_permissions.administrator:
+        if ctx.channel_id in DELETION_DICT:
+            del_list = DELETION_DICT[ctx.channel_id]
+            del_num = int(del_num)
+            if del_num > len(del_list):
+                del_num = len(del_list)
+            del_msg = ""
+            for msg in del_list[len(del_list)-del_num:]:
+                del_msg += f"{msg}\n"
+            await ctx.respond(del_msg, ephemeral=silent)
+        else:
+            await ctx.respond("There are no recent edits in this channel", ephemeral=silent)
+    else:
+        await ctx.respond("Only admins can use this command",ephemeral=silent)
+
+
 @bot.event
-async def on_message_edit(msg_b, msg_a):
-    LOG = bot.get_guild(DOG_ID).get_channel(arch_edit)
-    notice = f"{msg_b.author} edited from {msg_a.channel}: {msg_b.content} to: {msg_a.content}"
-    await LOG.send(notice)
-    print(notice)
+async def on_message_edit(msg_b: discord.Message, msg_a: discord.Message):
+    if not check_for_gif(msg_a):
+        now = datetime.datetime.now()
+        LOG = bot.get_guild(DOG_ID).get_channel(arch_edit)
+        notice = f"`{msg_b.author} | {msg_a.channel}` {msg_b.content} `->` {msg_a.content}"
+        save_notice = f"`{now.strftime('%d/%m/%Y, %H:%M:%S')}| {msg_b.author}` {msg_b.content} `->` {msg_a.content}"
+        message_persistance(msg_b.channel.id,save_notice,deletion=False)
+        await LOG.send(notice)
+        print(notice)
 
 
 @bot.event
 async def on_message_delete(msg):
+    now = datetime.datetime.now()
     LOG = bot.get_guild(DOG_ID).get_channel(arch_del)
-    notice = f"{msg.author} deleted: {msg.content} | from {msg.channel}"
+    notice = f"`{msg.author} | {msg.channel}  deleted:` {msg.content}"
+    save_notice = f"`{now.strftime('%d/%m/%Y: %H:%M:%S')}| {msg.author} deleted:` {msg.content}"
+    message_persistance(msg.channel.id, save_notice, deletion=True)
     await LOG.send(notice)
     print(notice)
 
